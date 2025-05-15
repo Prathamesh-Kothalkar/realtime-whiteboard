@@ -3,6 +3,7 @@ import http from 'http';
 import cors from 'cors';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
+import { keycloak, memoryStore, session } from './config/keycloack';
 
 dotenv.config();
 
@@ -16,6 +17,26 @@ const io = new Server(server, {
     origin: 'http://localhost:5173', // frontend origin
     methods: ['GET', 'POST']
   }
+});
+
+app.use(
+  session({
+    secret: 'your-secret',
+    resave: false,
+    saveUninitialized: true,
+    store: memoryStore,
+  })
+);
+
+app.use(keycloak.middleware());
+
+app.get('/protected', keycloak.protect(), (req, res) => {
+  res.send('Access granted');
+});
+
+app.get('/logout', (req, res) => {
+  const redirectUrl = 'http://localhost:3000';
+  res.redirect(`http://localhost:8080/realms/your-realm-name/protocol/openid-connect/logout?redirect_uri=${redirectUrl}`);
 });
 
 io.on('connection', (socket) => {
