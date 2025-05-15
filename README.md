@@ -27,9 +27,8 @@ A real-time collaborative whiteboard built with **React**, **Fabric.js**, and **
 ### 📦 Installation
 
 ```bash
-git clone https://github.com/your-username/whiteboard-app.git
-cd whiteboard-app
-npm install
+git clone https://github.com/prathamesh-kothalkar/realtime-whiteboard.git
+cd realtime-whiteboard
 ```
 
 ---
@@ -39,16 +38,21 @@ npm install
 #### Start Server (Socket.io):
 
 ```bash
-cd server
+cd backend
 npm install
-node index.js
+npm run dev
 ```
 
 #### Start Client:
 
 ```bash
-cd client
+cd frontend
 npm run dev
+```
+#### Start Keycloak:
+```bash
+cd keycloak
+docker-compose up
 ```
 
 Make sure the frontend is connecting to the correct WebSocket server (`localhost:PORT`).
