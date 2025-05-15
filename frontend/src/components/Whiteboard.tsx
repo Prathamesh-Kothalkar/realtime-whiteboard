@@ -6,15 +6,11 @@ const Whiteboard: React.FC = () => {
     const canvasRef = useRef<fabric.Canvas | null>(null);
     const undoStack = useRef<fabric.Object[]>([]);
     const redoStack = useRef<fabric.Object[]>([]);
-    const [isErasing, setIsErasing] = useState<Boolean>(false);
-
+    const [isErasing, setIsErasing] = useState(false);
 
     useEffect(() => {
         const canvasElement = document.getElementById('canvas') as HTMLCanvasElement | null;
         if (!canvasElement) return;
-
-
-
 
         if (canvasRef.current) {
             canvasRef.current.dispose();
@@ -44,42 +40,18 @@ const Whiteboard: React.FC = () => {
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
-        canvas.on('object:added', (e) => {
-            if (e.target) {
-                undoStack.current.push(e.target);
-                redoStack.current = [];
-            }
-        });
-
         canvas.on('path:created', (e) => {
-            socket.emit('draw', e.path.toObject());
-        });
-
-        const handleMouseDown = (e: fabric.IEvent) => {
-            if (!isErasing) return;
-
-            const pointer = canvas.getPointer(e.e);
-            const clickedPoint = new fabric.Point(pointer.x, pointer.y);
-            const objects = canvas.getObjects();
-
-            for (let i = objects.length - 1; i >= 0; i--) {
-                const obj = objects[i];
-                if (obj.containsPoint(clickedPoint)) {
-                    canvas.remove(obj);
-                    canvas.requestRenderAll();
-                    break;
-                }
+            if (e.path) {
+                undoStack.current.push(e.path);
+                socket.emit('draw', e.path.toObject());
             }
-        };
-
-        canvas.on('mouse:down', handleMouseDown);
+        });
 
         socket.on('draw', (pathData) => {
-            fabric.util.enlivenObjects([pathData], (objects: any) => {
-                objects.forEach((obj: fabric.Object) => {
-                    canvas.add(obj);
-                });
-            });
+           
+           const path = new fabric.Path(pathData.path, pathData);
+canvas.add(path);
+canvas.renderAll();
         });
 
         socket.on('clear', () => {
@@ -88,12 +60,26 @@ const Whiteboard: React.FC = () => {
             canvas.renderAll();
         });
 
+        socket.on('send-canvas', (targetSocketId) => {
+            const canvasData = canvas.toJSON();
+            socket.emit('canvas-data', { to: targetSocketId, data: canvasData });
+        });
+
+        socket.on('canvas-data', ({ data }) => {
+            canvas.loadFromJSON(data, () => {
+                canvas.renderAll();
+            });
+        });
+
+        socket.emit('request-canvas');
+
         return () => {
             window.removeEventListener('resize', resizeCanvas);
-            canvas.off('mouse:down', handleMouseDown);
+            canvas.dispose();
             socket.off('draw');
             socket.off('clear');
-            canvas.dispose();
+            socket.off('send-canvas');
+            socket.off('canvas-data');
         };
     }, [isErasing]);
 
@@ -104,6 +90,7 @@ const Whiteboard: React.FC = () => {
             if (obj) {
                 canvas.remove(obj);
                 redoStack.current.push(obj);
+                canvas.renderAll();
             }
         }
     };
@@ -115,23 +102,7 @@ const Whiteboard: React.FC = () => {
             if (obj) {
                 canvas.add(obj);
                 undoStack.current.push(obj);
-            }
-        }
-    };
-
-    const handleEraser = (e: any) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const pointer = canvas.getPointer(e);
-        const clickedPoint = new fabric.Point(pointer.x, pointer.y);
-        const objects = canvas.getObjects();
-        for (let i = objects.length - 1; i >= 0; i--) {
-            const obj = objects[i];
-            if (obj.containsPoint(clickedPoint)) {
-                canvas.remove(obj);
-                canvas.requestRenderAll();
-                break;
+                canvas.renderAll();
             }
         }
     };
@@ -179,20 +150,26 @@ const Whiteboard: React.FC = () => {
     };
 
     const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (canvasRef.current) {
-            canvasRef.current.freeDrawingBrush.color = e.target.value;
+        const canvas = canvasRef.current;
+        if (canvas && canvas.freeDrawingBrush) {
+            canvas.freeDrawingBrush.color = e.target.value;
         }
     };
 
     const handleBrushSizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (canvasRef.current) {
-            canvasRef.current.freeDrawingBrush.width = parseInt(e.target.value);
+        const canvas = canvasRef.current;
+        if (canvas && canvas.freeDrawingBrush) {
+            canvas.freeDrawingBrush.width = parseInt(e.target.value);
         }
     };
 
     return (
         <>
-            <div id="canvas-container" className="w-100 border border-primary rounded mt-3" style={{ height: '80vh' }}>
+            <div
+                id="canvas-container"
+                className="w-100 border border-primary rounded mt-3"
+                style={{ height: '80vh' }}
+            >
                 <canvas id="canvas" />
             </div>
             <div className="mt-2">
@@ -210,8 +187,21 @@ const Whiteboard: React.FC = () => {
                 <button onClick={handleAddText} className="btn btn-info me-2">Add Text</button>
             </div>
             <div className="mt-3">
-                <label className="me-2">Color: <input type="color" onChange={handleColorChange} /></label>
-                <label className="ms-3">Brush Size: <input type="range" min="1" max="30" defaultValue="2" onChange={handleBrushSizeChange} /></label>
+                <label className="me-2">
+                    Color:
+                    <input type="color" onChange={handleColorChange} className="ms-2" />
+                </label>
+                <label className="ms-3">
+                    Brush Size:
+                    <input
+                        type="range"
+                        min="1"
+                        max="30"
+                        defaultValue="2"
+                        onChange={handleBrushSizeChange}
+                        className="ms-2"
+                    />
+                </label>
             </div>
         </>
     );
