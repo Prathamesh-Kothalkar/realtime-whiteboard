@@ -2,9 +2,13 @@
 
 A real-time collaborative whiteboard built with **React**, **Fabric.js**, and **Socket.io**. Users can draw freely, undo/redo their actions, erase objects, and collaborate live with others.
 
-![whiteboard-demo](https://user-images.githubusercontent.com/your-gif-or-screenshot.png)
+[Demo] https://github.com/user-attachments/assets/b2e1bbb1-ab7b-4b99-88fc-e77f687d71d5
+<video src="https://github.com/user-attachments/assets/b2e1bbb1-ab7b-4b99-88fc-e77f687d71d5"></video>
 
 ---
+
+
+
 
 ### 🚀 Features
 
