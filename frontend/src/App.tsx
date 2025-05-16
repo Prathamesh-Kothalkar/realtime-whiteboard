@@ -2,10 +2,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import keycloak from './utils/keycloak';
 import Whiteboard from './components/Whiteboard';
 import AuthButtons from './components/AuthButton';
+import Navbar from './components/Navbar';
 
 const App = () => {
   const [authenticated, setAuthenticated] = useState<Boolean>(false);
   const [loading, setLoading] = useState<Boolean>(true);
+  const [sessionId, setSessionId] = useState<string>("");
+  const [inputSessionId, setInputSessionId] = useState<string>("");
   const initializedRef = useRef<Boolean>(false); 
 
   useEffect(() => {
@@ -35,16 +38,55 @@ const App = () => {
     }
   }, []);
 
+  const handleCreateSession = () => {
+    // Generate a simple random session ID (could be improved)
+    const newSessionId = Math.random().toString(36).substr(2, 9);
+    setSessionId(newSessionId);
+  };
+
+  const handleJoinSession = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputSessionId.trim()) {
+      setSessionId(inputSessionId.trim());
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
 
-  return (
-    <div className="container">
-      <h1 className="mt-3">Real-time Whiteboard</h1>
-      <AuthButtons />
-      {authenticated && <Whiteboard />} 
+ return (
+  <div>
+    <Navbar sessionId={sessionId} /> 
+
+    <div className="container mt-4">
+      <h3 className="mb-3">Real-time Whiteboard</h3>
+
+      {authenticated && !sessionId && (
+        <div className="session-controls">
+          <button className="btn btn-primary me-2" onClick={handleCreateSession}>
+            Create New Session
+          </button>
+          <form onSubmit={handleJoinSession} style={{ display: 'inline-block' }}>
+            <input
+              type="text"
+              placeholder="Enter Session ID"
+              value={inputSessionId}
+              onChange={e => setInputSessionId(e.target.value)}
+              className="form-control d-inline-block"
+              style={{ width: 180, marginRight: 8 }}
+            />
+            <button className="btn btn-success" type="submit">
+              Join Session
+            </button>
+          </form>
+        </div>
+      )}
+
+      {authenticated && sessionId && <Whiteboard sessionId={sessionId} />}
       {!authenticated && <div>Please log in to access the whiteboard.</div>}
     </div>
-  );
+  </div>
+);
+
 };
 
 export default App;

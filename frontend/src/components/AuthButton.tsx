@@ -20,17 +20,18 @@ const AuthButtons = () => {
           Login
         </button>
       )}
+       {!keycloak.authenticated && (
+            <button onClick={handleRegister} className="btn btn-secondary me-2">
+            Register
+            </button>
+        )}
       {keycloak.authenticated && (
         <button onClick={handleLogout} className="btn btn-danger">
           Logout
         </button>
       )}
 
-        {keycloak.authenticated && (
-            <button onClick={handleRegister} className="btn btn-secondary me-2">
-            Register
-            </button>
-        )}
+       
     </div>
   );
 };
